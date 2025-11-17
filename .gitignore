@@ -1,0 +1,48 @@
+#############################################
+# TERRAFORM
+#############################################
+
+# Local .terraform directories
+.terraform/
+
+# Terraform lock file (auto-generated)
+.terraform.lock.hcl
+
+# State files — NEVER commit these
+terraform.tfstate
+terraform.tfstate.backup
+
+# Crash log
+crash.log
+
+# Sensitive variable files
+*.tfvars
+*.tfvars.json
+
+# Output plans
+*.tfplan
+
+#############################################
+# EDITORS & OS FILES
+#############################################
+
+# VS Code settings
+.vscode/
+*.code-workspace
+
+# macOS files
+.DS_Store
+
+# Windows files
+Thumbs.db
+
+#############################################
+# LOGS & TEMP
+#############################################
+*.log
+*.tmp
+
+#############################################
+# NODE MODULES (if you ever add JS tooling)
+#############################################
+node_modules/
