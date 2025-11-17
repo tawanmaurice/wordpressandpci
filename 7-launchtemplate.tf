@@ -1,107 +1,78 @@
-resource "aws_launch_template" "app1_LT" {
-  name_prefix   = "wp-pci-lt-"
-  image_id      = "ami-0cae6d6fe6048ca2c" # Amazon Linux 2023 (x86)
-  instance_type = "t2.micro"
+########################################
+# Launch Template for app servers
+########################################
 
-  # Use the security group that allows HTTP from the load balancer / internet
-  vpc_security_group_ids = [aws_security_group.app1-sg01-servers.id]
+locals {
+  wp_site_url = "https://site.tawanperry.top"
+}
 
-  # Optional: use your existing key pair name if you want SSH access
-  # key_name = "MyLinuxBox"
+data "aws_ami" "amazon_linux_2023" {
+  most_recent = true
+
+  owners = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["al2023-ami-*-x86_64"]
+  }
+}
+
+resource "aws_launch_template" "app1_lt" {
+  name_prefix   = "app1-lt-"
+  image_id      = data.aws_ami.amazon_linux_2023.id
+  instance_type = "t3.micro"
+
+  # Security group for EC2 instances (already defined in 6-sg01-all.tf)
+  vpc_security_group_ids = [
+    aws_security_group.app1-sg01-servers.id
+  ]
 
   user_data = base64encode(<<-EOF
     #!/bin/bash
+    set -xe
 
-    # Subdomain this stack is intended to serve via Route 53
-    DOMAIN_NAME="wp-pci.tawanperry.top"
-
-    # Basic LAMP-ish stack: Apache + PHP (WordPress-ready)
+    # Update system
     dnf update -y
-    dnf install -y httpd php php-mysqlnd
+
+    # Install Apache (httpd)
+    dnf install -y httpd
 
     systemctl enable httpd
     systemctl start httpd
 
-    # Simple placeholder site for the WordPress + PCI project
-    cat <<HTML > /var/www/html/index.html
-    <!doctype html>
+    # Simple HTML landing page showing our PCI/WordPress test site info
+    cat <<HTML >/var/www/html/index.html
+    <!DOCTYPE html>
     <html lang="en">
-    <head>
-      <meta charset="utf-8" />
-      <title>WordPress + PCI Demo - $DOMAIN_NAME</title>
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <style>
-        body {
-          margin: 0;
-          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-          background: #020617;
-          color: #e5e7eb;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-        }
-        .card {
-          padding: 24px 28px;
-          border-radius: 14px;
-          border: 1px solid #334155;
-          background: #020617;
-          box-shadow: 0 24px 50px rgba(0,0,0,0.6);
-          max-width: 640px;
-        }
-        h1 { margin: 0 0 8px; font-size: 1.9rem; }
-        h2 { margin: 0 0 16px; font-size: 1.1rem; color: #9ca3af; }
-        p  { line-height: 1.5; font-size: 0.95rem; }
-        .badge {
-          display:inline-block;
-          padding:4px 10px;
-          border-radius:999px;
-          border:1px solid #4b5563;
-          font-size:0.75rem;
-          margin-right:6px;
-          margin-top:4px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="card">
-        <h1>WordPress + PCI Demo</h1>
-        <h2>Hosted at: $DOMAIN_NAME</h2>
-
-        <p>
-          This stack is part of Tawan Perry’s
-          <strong>WordPress + PCI Readiness</strong> project.
+      <head>
+        <meta charset="UTF-8" />
+        <title>WordPress & PCI Test - ${local.wp_site_url}</title>
+      </head>
+      <body style="font-family: Arial, sans-serif; background: #0b1120; color: #e5e7eb; text-align: center; padding-top: 60px;">
+        <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Welcome to ${local.wp_site_url}</h1>
+        <p style="font-size: 1.2rem; max-width: 640px; margin: 0 auto 1.5rem;">
+          This AWS environment is designed for a future WordPress deployment with
+          PCI-style hardening and security scans.
         </p>
-
-        <p>
-          <span class="badge">VPC</span>
-          <span class="badge">Application Load Balancer</span>
-          <span class="badge">Auto Scaling Group</span>
-          <span class="badge">WordPress-ready LAMP</span>
+        <p style="font-size: 1rem; color: #9ca3af;">
+          Deployed via Terraform using a Launch Template, Auto Scaling Group, ALB,
+          ACM certificate, and Route53.
         </p>
-
-        <p style="margin-top:16px;font-size:0.9rem;color:#9ca3af;">
-          Later, this placeholder page will be replaced by a full WordPress install
-          with hardened settings, SSL, and PCI-friendly configuration.
-        </p>
-      </div>
-    </body>
+      </body>
     </html>
     HTML
+
   EOF
   )
 
-  tag_specifications {
-    resource_type = "instance"
-    tags = {
-      Name    = "wp-pci-instance"
-      Service = "dev"
-      Owner   = "Tawan"
-      Project = "wordpress-and-pci"
-    }
-  }
-
   lifecycle {
     create_before_destroy = true
+  }
+
+  tags = {
+    Name    = "app1-launch-template"
+    Owner   = "Tawan"
+    Planet  = "terraform-training"
+    Service = "application1"
   }
 }
