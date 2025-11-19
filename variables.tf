@@ -1,11 +1,15 @@
-variable "root_domain" {
-  description = "Base Route53 hosted zone domain"
+variable "db_name" {
   type        = string
-  default     = "tawanperry.top"
+  description = "WordPress database name"
 }
 
-variable "app_subdomain" {
-  description = "Subdomain for the app/site"
+variable "db_username" {
   type        = string
-  default     = "site"
+  description = "Database master username"
+}
+
+variable "db_password" {
+  type        = string
+  description = "Database master password"
+  sensitive   = true
 }
